@@ -2,6 +2,8 @@
 
 Пакет `eaeunion` читает любую доступную REST-коллекцию через одну настроенную точку `/find`. Он не хранит каталог коллекций и не навязывает модели конкретных реестров. Требуется Go 1.23+; внешних зависимостей нет.
 
+Для Единого реестра органов по оценке соответствия есть [типизированная обёртка `conformity`](conformity/README.md).
+
 ```go
 client, err := eaeunion.NewClient(eaeunion.Config{
     Endpoint: "https://tech.eaeunion.org/spd/find",
@@ -12,7 +14,7 @@ limit := 10
 page, err := client.Find(ctx,
     "kbdread.service-prop-36-v_conformityAssessmentBodyInformationDetailsType_organization_table",
     eaeunion.Query{
-        Filter: map[string]any{"unifiedCountryCode": "RU"},
+        Filter: map[string]any{"unifiedCountryCode.value": "RU"},
         Limit: &limit,
         Sort: []eaeunion.SortField{{Name: "conformityAuthorityId", Direction: 1}},
         Fields: []eaeunion.Field{{Name: "conformityAuthorityId", Include: 1}},
