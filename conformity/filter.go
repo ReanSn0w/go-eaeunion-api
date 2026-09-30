@@ -6,8 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	eaeunion "github.com/ReanSn0w/go-eaeunion-api"
 	"regexp"
+
+	eaeunion "github.com/ReanSn0w/go-eaeunion-api"
 )
 
 // Filter combines named conditions and Extra with $and. NameContains escapes

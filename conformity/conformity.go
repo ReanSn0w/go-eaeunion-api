@@ -29,10 +29,36 @@ type Date struct {
 type Status struct {
 	Code Code `json:"statusCode"`
 }
+type Address struct {
+	Kind     string `json:"addressKindCode"`
+	Country  Code   `json:"unifiedCountryCode"`
+	Region   string `json:"regionName"`
+	City     string `json:"cityName"`
+	Street   string `json:"streetName"`
+	Building string `json:"buildingNumberId"`
+	Room     string `json:"roomNumberId"`
+	PostCode string `json:"postCode"`
+	Full     string `json:"address"`
+}
+type PersonName struct {
+	First  string `json:"firstName"`
+	Middle string `json:"middleName"`
+	Last   string `json:"lastName"`
+}
+type Communication struct {
+	ChannelCode string   `json:"communicationChannelCode"`
+	IDs         []string `json:"communicationChannelId"`
+}
+type Officer struct {
+	Name           PersonName      `json:"fullNameDetails"`
+	FullName       string          `json:"fullName"`
+	Position       string          `json:"positionName"`
+	Communications []Communication `json:"communicationDetails"`
+}
 type BodyDetails struct {
-	Name      string            `json:"businessEntityUnitName"`
-	Addresses []json.RawMessage `json:"addressV4Details,omitempty"`
-	Officers  []json.RawMessage `json:"officerDetails,omitempty"`
+	Name      string    `json:"businessEntityUnitName"`
+	Addresses []Address `json:"addressV4Details,omitempty"`
+	Officers  []Officer `json:"officerDetails,omitempty"`
 }
 type BusinessEntity struct {
 	Name      string `json:"businessEntityName"`
@@ -44,19 +70,30 @@ type Certificate struct {
 	ValidUntil Date   `json:"docValidityDate"`
 	Status     Status `json:"statusV2Details"`
 }
+type ConformityObject struct {
+	Name            string            `json:"conformityObjectName"`
+	CommodityCodes  []json.RawMessage `json:"commodityCode,omitempty"`
+	Characteristics []json.RawMessage `json:"conformityObjectCharacteristicDetails,omitempty"`
+}
+type AccreditationArea struct {
+	ProductKindCode       string             `json:"productKindCode"`
+	TechnicalRegulationID string             `json:"technicalRegulationId"`
+	Objects               []ConformityObject `json:"conformityObjectDetails,omitempty"`
+	Text                  []json.RawMessage  `json:"accreditationAreaText,omitempty"`
+}
 
 // Record retains Raw to preserve fields not yet modeled by this package.
 type Record struct {
-	OID                OID               `json:"_id"`
-	Country            Code              `json:"unifiedCountryCode"`
-	AuthorityID        string            `json:"conformityAuthorityId"`
-	Body               BodyDetails       `json:"conformityAssessmentBodyDetails"`
-	BusinessEntity     BusinessEntity    `json:"businessEntityDetails"`
-	Certificate        Certificate       `json:"accreditationCertificateDetails"`
-	RecordStatus       Status            `json:"statusV2Details"`
-	AccreditationAreas []json.RawMessage `json:"accreditationAreaDetails,omitempty"`
-	Organizations      []string          `json:"organizations,omitempty"`
-	Raw                json.RawMessage   `json:"-"`
+	OID                OID                 `json:"_id"`
+	Country            Code                `json:"unifiedCountryCode"`
+	AuthorityID        string              `json:"conformityAuthorityId"`
+	Body               BodyDetails         `json:"conformityAssessmentBodyDetails"`
+	BusinessEntity     BusinessEntity      `json:"businessEntityDetails"`
+	Certificate        Certificate         `json:"accreditationCertificateDetails"`
+	RecordStatus       Status              `json:"statusV2Details"`
+	AccreditationAreas []AccreditationArea `json:"accreditationAreaDetails,omitempty"`
+	Organizations      []string            `json:"organizations,omitempty"`
+	Raw                json.RawMessage     `json:"-"`
 }
 
 type Page struct {

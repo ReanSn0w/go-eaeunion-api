@@ -2,6 +2,8 @@
 
 Пакет `eaeunion` читает любую доступную REST-коллекцию через одну настроенную точку `/find`. Он не хранит каталог коллекций и не навязывает модели конкретных реестров. Требуется Go 1.23+; внешних зависимостей нет.
 
+Для Единого реестра органов по оценке соответствия есть [типизированная обёртка `conformity`](conformity/README.md).
+
 ```go
 client, err := eaeunion.NewClient(eaeunion.Config{
     Endpoint: "https://tech.eaeunion.org/spd/find",

@@ -47,6 +47,9 @@ func TestDecodeFixture(t *testing.T) {
 	if len(p.Records[0].AccreditationAreas) != 1 || len(p.Records[0].Body.Addresses) != 1 || !strings.Contains(string(p.Records[0].Raw), "futureField") {
 		t.Error("nested or unknown data lost")
 	}
+	if p.Records[0].AccreditationAreas[0].Objects[0].Name != "Пример продукции" || p.Records[0].Body.Addresses[0].Full != "Пример адреса" {
+		t.Error("nested model not decoded")
+	}
 	if p.Records[1].Certificate.ID != "" || p.Records[1].Country.CodeListID != "P.CLS.019" {
 		t.Error("optional fields or country lost")
 	}
