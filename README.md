@@ -14,7 +14,7 @@ limit := 10
 page, err := client.Find(ctx,
     "kbdread.service-prop-36-v_conformityAssessmentBodyInformationDetailsType_organization_table",
     eaeunion.Query{
-        Filter: map[string]any{"unifiedCountryCode": "RU"},
+        Filter: map[string]any{"unifiedCountryCode.value": "RU"},
         Limit: &limit,
         Sort: []eaeunion.SortField{{Name: "conformityAuthorityId", Direction: 1}},
         Fields: []eaeunion.Field{{Name: "conformityAuthorityId", Include: 1}},
