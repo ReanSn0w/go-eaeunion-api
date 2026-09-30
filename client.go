@@ -154,7 +154,12 @@ func NewClient(cfg Config) (*Client, error) {
 		if cfg.Gateway == nil {
 			return nil, errors.New("gateway mode requires gateway configuration")
 		}
-		if _, err := parseEndpoint(cfg.Gateway.URL); err != nil {
+		gatewayURL, parseErr := url.Parse(cfg.Gateway.URL)
+		if parseErr != nil || gatewayURL == nil {
+			return nil, errors.New("gateway URL is invalid")
+		}
+		gatewayURL.RawQuery = ""
+		if _, err := parseEndpoint(gatewayURL.String()); err != nil {
 			return nil, fmt.Errorf("gateway URL: %w", err)
 		}
 		if cfg.Gateway.ServiceKey == "" || cfg.Gateway.CountryTo == "" {

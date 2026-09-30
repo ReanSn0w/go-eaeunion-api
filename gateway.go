@@ -64,8 +64,9 @@ func (c *Client) findViaGateway(ctx context.Context, endpoint url.URL, filter []
 	if endpoint.RawQuery != "" {
 		path += "?" + endpoint.RawQuery
 	}
+	stale := ""
 	for attempt := 0; attempt < 2; attempt++ {
-		group, err := c.getGroupToken(ctx, access, attempt > 0)
+		group, err := c.getGroupToken(ctx, access, stale)
 		if err != nil {
 			return Page{}, err
 		}
@@ -77,6 +78,7 @@ func (c *Client) findViaGateway(ctx context.Context, endpoint url.URL, filter []
 			return decodePage([]byte(response.Request.ResponseBody))
 		}
 		if attempt == 0 && response.Request.ResponseStatus == http.StatusUnauthorized {
+			stale = group
 			continue
 		}
 		return Page{}, &GatewayError{response.Status, response.Request.Status, response.Request.ResponseStatus}
@@ -84,10 +86,10 @@ func (c *Client) findViaGateway(ctx context.Context, endpoint url.URL, filter []
 	return Page{}, errors.New("gateway authentication failed")
 }
 
-func (c *Client) getGroupToken(ctx context.Context, access string, force bool) (string, error) {
+func (c *Client) getGroupToken(ctx context.Context, access, stale string) (string, error) {
 	c.groupMu.Lock()
 	defer c.groupMu.Unlock()
-	if !force && c.groupToken != "" && c.groupAccessToken == access {
+	if c.groupToken != "" && c.groupAccessToken == access && (stale == "" || c.groupToken != stale) {
 		return c.groupToken, nil
 	}
 	response, err := c.gatewayCall(ctx, gatewayRequest{Type: "HTTP", ServiceKey: "platform_svc", CountryTo: "EEC", Path: "/token/login_by_token", RequestType: "GET", Headers: []gatewayHeader{{"Authorization", "Bearer " + access}}}, access)
