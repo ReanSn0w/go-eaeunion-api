@@ -58,32 +58,81 @@ func (c *Client) Find(ctx context.Context, collection string, query Query) (Page
 		return Page{}, fmt.Errorf("build API request: %w", err)
 	}
 	req.Header.Set("Content-Type", "text/plain")
-	if c.mode != Anonymous {
-		return Page{}, errors.New("configured authorization mode is unavailable")
+	switch c.mode {
+	case Anonymous:
+		return c.send(req)
+	case DirectToken:
+		token, err := c.tokenProvider.Token(ctx)
+		if err != nil {
+			return Page{}, fmt.Errorf("obtain access token: %w", err)
+		}
+		if token == "" {
+			return Page{}, errors.New("token provider returned an empty token")
+		}
+		req.Header.Set("Authorization", "Bearer "+token)
+		return c.sendWithSecrets(req, token)
+	case Gateway:
+		return c.findViaGateway(ctx, endpoint, body)
+	default:
+		return Page{}, errors.New("unknown access mode")
 	}
-	return c.send(req)
 }
 
 func (c *Client) send(req *http.Request) (Page, error) {
-	response, err := c.httpClient.Do(req)
+	return c.sendWithSecrets(req)
+}
+
+func (c *Client) sendWithSecrets(req *http.Request, secrets ...string) (Page, error) {
+	body, err := readResponse(c.httpClient, req, c.maxResponseBytes, secrets...)
 	if err != nil {
-		return Page{}, fmt.Errorf("send API request: %w", err)
+		return Page{}, err
+	}
+	return decodePage(body)
+}
+
+func readResponse(client *http.Client, req *http.Request, maxBytes int64, secrets ...string) ([]byte, error) {
+	redirectSafe := *client
+	previousCheck := client.CheckRedirect
+	redirectSafe.CheckRedirect = func(next *http.Request, via []*http.Request) error {
+		if len(via) > 0 && (next.URL.Scheme != via[0].URL.Scheme || !strings.EqualFold(next.URL.Host, via[0].URL.Host)) {
+			return errors.New("cross-origin redirect refused")
+		}
+		if previousCheck != nil {
+			return previousCheck(next, via)
+		}
+		if len(via) >= 10 {
+			return errors.New("too many redirects")
+		}
+		return nil
+	}
+	response, err := redirectSafe.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("send API request: %w", err)
 	}
 	defer response.Body.Close()
-	body, err := io.ReadAll(io.LimitReader(response.Body, c.maxResponseBytes+1))
+	body, err := io.ReadAll(io.LimitReader(response.Body, maxBytes+1))
 	if err != nil {
-		return Page{}, fmt.Errorf("read API response: %w", err)
+		return nil, fmt.Errorf("read API response: %w", err)
 	}
-	if int64(len(body)) > c.maxResponseBytes {
-		return Page{}, ErrResponseTooLarge
+	if int64(len(body)) > maxBytes {
+		return nil, ErrResponseTooLarge
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		message := strings.TrimSpace(string(body))
+		for _, secret := range secrets {
+			if secret != "" {
+				message = strings.ReplaceAll(message, secret, "[REDACTED]")
+			}
+		}
 		if len(message) > 512 {
 			message = message[:512]
 		}
-		return Page{}, &HTTPError{StatusCode: response.StatusCode, Message: message}
+		return nil, &HTTPError{StatusCode: response.StatusCode, Message: message}
 	}
+	return body, nil
+}
+
+func decodePage(body []byte) (Page, error) {
 	var envelope map[string]json.RawMessage
 	if err := json.Unmarshal(body, &envelope); err != nil {
 		return Page{}, fmt.Errorf("decode API response: %w", err)

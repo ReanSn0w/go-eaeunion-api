@@ -2,13 +2,14 @@
 package eaeunion
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
-	"strings"
+	"sync"
 	"time"
 )
 
@@ -99,7 +100,7 @@ func DecodePage[T any](page Page) ([]T, error) {
 	items := make([]T, 0, len(page.Result))
 	for i, raw := range page.Result {
 		var item T
-		decoder := json.NewDecoder(strings.NewReader(string(raw)))
+		decoder := json.NewDecoder(bytes.NewReader(raw))
 		decoder.UseNumber()
 		if err := decoder.Decode(&item); err != nil {
 			return nil, fmt.Errorf("decode document %d: %w", i, err)
@@ -120,6 +121,9 @@ type Client struct {
 	tokenProvider    TokenProvider
 	credentials      *ClientCredentials
 	gateway          *GatewayConfig
+	groupMu          sync.Mutex
+	groupToken       string
+	groupAccessToken string
 }
 
 // NewClient validates its endpoint and applies conservative defaults.
@@ -136,6 +140,26 @@ func NewClient(cfg Config) (*Client, error) {
 	}
 	if cfg.TokenProvider != nil && cfg.Credentials != nil {
 		return nil, errors.New("provide either a token provider or client credentials")
+	}
+	if cfg.Mode == Anonymous && (cfg.TokenProvider != nil || cfg.Credentials != nil || cfg.Gateway != nil) {
+		return nil, errors.New("anonymous mode cannot use authorization configuration")
+	}
+	if cfg.Mode != Gateway && cfg.Gateway != nil {
+		return nil, errors.New("gateway configuration requires gateway mode")
+	}
+	if cfg.Mode != Anonymous && cfg.TokenProvider == nil && cfg.Credentials == nil {
+		return nil, errors.New("authorized mode requires a token provider or client credentials")
+	}
+	if cfg.Mode == Gateway {
+		if cfg.Gateway == nil {
+			return nil, errors.New("gateway mode requires gateway configuration")
+		}
+		if _, err := parseEndpoint(cfg.Gateway.URL); err != nil {
+			return nil, fmt.Errorf("gateway URL: %w", err)
+		}
+		if cfg.Gateway.ServiceKey == "" || cfg.Gateway.CountryTo == "" {
+			return nil, errors.New("gateway service key and destination are required")
+		}
 	}
 	timeout := cfg.Timeout
 	if timeout == 0 {
@@ -157,6 +181,11 @@ func NewClient(cfg Config) (*Client, error) {
 	if cfg.Credentials != nil {
 		credentials := *cfg.Credentials
 		client.credentials = &credentials
+		provider, err := newCredentialProvider(credentials, httpClient, timeout, maxResponse)
+		if err != nil {
+			return nil, err
+		}
+		client.tokenProvider = provider
 	}
 	if cfg.Gateway != nil {
 		gateway := *cfg.Gateway
