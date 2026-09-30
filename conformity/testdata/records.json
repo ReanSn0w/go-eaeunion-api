@@ -1,0 +1,21 @@
+[
+  {
+    "_id":{"$oid":"000000000000000000000001"},
+    "unifiedCountryCode":{"value":"BY","codeListId":"2021"},
+    "conformityAuthorityId":"BY-EXAMPLE",
+    "conformityAssessmentBodyDetails":{"businessEntityUnitName":"Испытательная лаборатория","addressV4Details":[{"address":"Пример адреса"}],"officerDetails":[]},
+    "businessEntityDetails":{"businessEntityName":"Пример организации"},
+    "accreditationCertificateDetails":{"docId":"BY/EXAMPLE","docCreationDate":{"$date":"2020-01-01T00:00:00Z"},"statusV2Details":{"statusCode":{"value":"04"}}},
+    "statusV2Details":{"statusCode":{"value":"02"}},
+    "accreditationAreaDetails":[{"technicalRegulationId":"ТР ТС 001/2011","conformityObjectDetails":[{"conformityObjectName":"Пример продукции"}]}],
+    "organizations":["4"],"futureField":{"number":9007199254740993}
+  },
+  {
+    "_id":{"$oid":"000000000000000000000002"},
+    "unifiedCountryCode":{"value":"RU","codeListId":"P.CLS.019"},
+    "conformityAuthorityId":"12345",
+    "conformityAssessmentBodyDetails":{"businessEntityUnitName":"Орган по сертификации"},
+    "statusV2Details":{"statusCode":{"value":"01","codeListId":"P.CLS.019"}},
+    "organizations":["3"]
+  }
+]
